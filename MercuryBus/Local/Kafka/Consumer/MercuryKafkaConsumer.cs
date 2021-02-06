@@ -13,7 +13,7 @@ namespace MercuryBus.Local.Kafka.Consumer
     ///     an event is received.
     ///     Disposing of the the consumer shuts down the subscription.
     /// </summary>
-    public class MercuryKafkaConsumer : IDisposable
+    public sealed class MercuryKafkaConsumer : IDisposable
     {
         private const int ConsumePollMilliseconds = 100;
         private const int AdminClientTimeoutMilliseconds = 10;
@@ -126,72 +126,80 @@ namespace MercuryBus.Local.Kafka.Consumer
                 // (prevent setting it to it started after it has potentially already been set to stopped)
                 _state = MercuryKafkaConsumerState.Started;
 
-                Task.Run(() =>
-                {
-                    try
-                    {
-                        while (!_cancellationTokenSource.IsCancellationRequested)
-                        {
-                            try
-                            {
-                                var record =
-                                    consumer.Consume(TimeSpan.FromMilliseconds(ConsumePollMilliseconds));
-
-                                if (record != null)
-                                {
-                                    _logger.LogDebug(
-                                        $"{logContext}: process record at offset='{record.Offset}', key='{record.Message.Key}', value='{record.Message.Value}'");
-
-                                    processor.Process(record);
-                                }
-                                else
-                                {
-                                    processor.ThrowExceptionIfHandlerFailed();
-                                }
-
-                                MaybeCommitOffsets(consumer, processor);
-                            }
-                            catch (ConsumeException e)
-                            {
-                                _logger.LogError($"{logContext}: ConsumeException - {e.Error}. Continuing.");
-                            }
-                        }
-
-                        _state = MercuryKafkaConsumerState.Stopped;
-                    }
-                    catch (TaskCanceledException)
-                    {
-                        _logger.LogInformation($"{logContext}: Shutdown by cancel");
-                        _state = MercuryKafkaConsumerState.Stopped;
-                    }
-                    catch (KafkaMessageProcessorFailedException e)
-                    {
-                        _logger.LogError($"{logContext}: Terminating due to KafkaMessageProcessorFailedException - {e}");
-                        _state = MercuryKafkaConsumerState.MessageHandlingFailed;
-                    }
-                    catch (Exception e)
-                    {
-                        _logger.LogError($"{logContext}: Exception - {e}");
-                        _state = MercuryKafkaConsumerState.Failed;
-                    }
-                    finally
-                    {
-                        // Try to put the last of the offsets away. Note that the
-                        // callbacks are done asynchronously so there is no guarantee
-                        // that all the offsets are ready. Worst case is that there
-                        // are messages processed more than once.
-                        MaybeCommitOffsets(consumer, processor);
-                        consumer.Dispose();
-
-                        _logger.LogDebug($"{logContext}: Stopped in state {_state.ToString()}");
-                    }
-                }, _cancellationTokenSource.Token);
+                Task.Run(() => { StartConsuming(consumer, processor); }, _cancellationTokenSource.Token);
             }
             catch (Exception e)
             {
                 _logger.LogError(e, $"{logContext}: Error subscribing");
                 _state = MercuryKafkaConsumerState.FailedToStart;
                 throw;
+            }
+        }
+
+        private void StartConsuming(IConsumer<string, string> consumer, KafkaMessageProcessor processor)
+        {
+            var logContext = $"{nameof(StartConsuming)} for SubscriberId={_subscriberId}";
+            try
+            {
+                while (!_cancellationTokenSource.IsCancellationRequested)
+                {
+                    ConsumeAndPublish(consumer, processor);
+                }
+
+                _state = MercuryKafkaConsumerState.Stopped;
+            }
+            catch (TaskCanceledException)
+            {
+                _logger.LogInformation($"{logContext}: Shutdown by cancel");
+                _state = MercuryKafkaConsumerState.Stopped;
+            }
+            catch (KafkaMessageProcessorFailedException e)
+            {
+                _logger.LogError($"{logContext}: Terminating due to KafkaMessageProcessorFailedException - {e}");
+                _state = MercuryKafkaConsumerState.MessageHandlingFailed;
+            }
+            catch (Exception e)
+            {
+                _logger.LogError($"{logContext}: Exception - {e}");
+                _state = MercuryKafkaConsumerState.Failed;
+            }
+            finally
+            {
+                // Try to put the last of the offsets away. Note that the
+                // callbacks are done asynchronously so there is no guarantee
+                // that all the offsets are ready. Worst case is that there
+                // are messages processed more than once.
+                MaybeCommitOffsets(consumer, processor);
+                consumer.Dispose();
+
+                _logger.LogDebug($"{logContext}: Stopped in state {_state.ToString()}");
+            }
+        }
+
+        private void ConsumeAndPublish(IConsumer<string, string> consumer, KafkaMessageProcessor processor)
+        {
+            var logContext = $"{nameof(ConsumeAndPublish)} for SubscriberId={_subscriberId}";
+            try
+            {
+                var record = consumer.Consume(TimeSpan.FromMilliseconds(ConsumePollMilliseconds));
+
+                if (record != null)
+                {
+                    _logger.LogDebug(
+                        $"{logContext}: process record at offset='{record.Offset}', key='{record.Message.Key}', value='{record.Message.Value}'");
+
+                    processor.Process(record);
+                }
+                else
+                {
+                    processor.ThrowExceptionIfHandlerFailed();
+                }
+
+                MaybeCommitOffsets(consumer, processor);
+            }
+            catch (ConsumeException e)
+            {
+                _logger.LogError($"{logContext}: ConsumeException - {e.Error}. Continuing.");
             }
         }
     }

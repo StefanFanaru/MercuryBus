@@ -11,7 +11,7 @@ using Microsoft.Extensions.Logging;
 
 namespace MercuryBus.Consumer.Kafka
 {
-    public class KafkaMessageConsumer : IMessageConsumer, IDisposable
+    public sealed class KafkaMessageConsumer : IMessageConsumer, IDisposable
     {
         private readonly string _boostrapServers;
         private readonly List<MercuryKafkaConsumer> _consumers = new();
@@ -21,7 +21,7 @@ namespace MercuryBus.Consumer.Kafka
         private readonly MercuryKafkaConsumerConfigurationProperties _mercuryKafkaConsumerConfiguration;
         private readonly IServiceScopeFactory _serviceScopeFactory;
 
-        private string _id = Guid.NewGuid().ToString();
+        private readonly string _id = Guid.NewGuid().ToString();
 
         public KafkaMessageConsumer(string boostrapServers,
             DecoratedMessageHandlerFactory decoratedMessageHandlerFactory,

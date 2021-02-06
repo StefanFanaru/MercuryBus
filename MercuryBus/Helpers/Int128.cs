@@ -3,7 +3,7 @@ using System.Globalization;
 
 namespace MercuryBus.Helpers
 {
-    public class Int128 : IComparable<Int128>, IComparable
+    public sealed class Int128 : IComparable<Int128>, IComparable
     {
         public Int128(long hi, long lo)
         {
@@ -58,7 +58,7 @@ namespace MercuryBus.Helpers
             return "Int123{" + AsString() + '}';
         }
 
-        protected bool Equals(Int128 other)
+        private bool Equals(Int128 other)
         {
             return Hi == other.Hi && Lo == other.Lo;
         }

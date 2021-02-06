@@ -59,9 +59,9 @@ namespace MercuryBus.Messaging.Common
             Headers[name] = value;
         }
 
-        public void RemoveHeader(string key)
+        public void RemoveHeader(string name)
         {
-            Headers?.Remove(key);
+            Headers?.Remove(name);
         }
 
         public override string ToString()
