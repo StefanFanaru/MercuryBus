@@ -1,0 +1,6 @@
+{
+  "KafkaBootstrapServers":  "kafka:9092",
+  "ConnectionStrings": {
+    "MercuryBusDbConnection": "Server=mssql,1433;Database=MercuryDb;User Id=sa;Password=TestPa$$word"
+  }
+}
