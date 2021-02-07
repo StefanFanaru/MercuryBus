@@ -67,7 +67,7 @@ namespace MercuryBus.Local.Kafka.Consumer
             _logger.LogDebug($"-{logContext}");
         }
 
-        private void VerifyTopicExistsBeforeSubscribing(IAdminClient adminClient, string topic)
+        private void VerifyTopicExistsBeforeSubscribing(IAdminClient adminClient, string topic, int retryForAvailability = 0)
         {
             var logContext = $"{nameof(VerifyTopicExistsBeforeSubscribing)} " +
                              $"for subscriberId='{_subscriberId}', topic='{topic}'";
@@ -79,9 +79,20 @@ namespace MercuryBus.Local.Kafka.Consumer
                 var partitions = metadata.Topics[0].Partitions;
                 _logger.LogDebug($"-{logContext}: found partitions='{string.Join(",", partitions.Select(p => p.PartitionId))}'");
             }
-            catch (Exception e)
+            catch (KafkaException e)
             {
-                _logger.LogError(e, $"{logContext}: Got exception: {e}");
+                if (retryForAvailability > 4)
+                {
+                    _logger.LogError(e, $"{logContext}: Verification failed. Got exception: {e}");
+                    throw;
+                }
+
+                retryForAvailability++;
+                _logger.LogInformation(
+                    $"{logContext}: Verification failed. Waiting {5 * retryForAvailability} seconds before next retry...");
+                Thread.Sleep(5000 * retryForAvailability);
+
+                _logger.LogInformation($"{logContext}: Retrying topic verification. Retry number {retryForAvailability}");
                 throw;
             }
         }
