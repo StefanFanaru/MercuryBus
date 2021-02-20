@@ -17,6 +17,8 @@ namespace MercuryBus.Events.Publisher
             IList<IDomainEvent> domainEvents);
 
         Task PublishAsync(string aggregateType, object aggregateId, IList<IDomainEvent> domainEvents);
+        Task PublishAsync(string aggregateType, object aggregateId, IDomainEvent domainEvent);
         Task PublishAsync<TAggregate>(object aggregateId, IList<IDomainEvent> domainEvents);
+        Task PublishAsync<TAggregate>(object aggregateId, IDomainEvent domainEvent);
     }
 }

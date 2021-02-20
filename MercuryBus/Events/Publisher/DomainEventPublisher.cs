@@ -70,6 +70,18 @@ namespace MercuryBus.Events.Publisher
             await PublishAsync(typeof(TAggregate).FullName, aggregateId, domainEvents);
         }
 
+        public async Task PublishAsync(string aggregateType, object aggregateId, IDomainEvent domainEvent)
+        {
+            await PublishAsync(aggregateType, aggregateId, new Dictionary<string, string>(),
+                new List<IDomainEvent> {domainEvent});
+        }
+
+        public async Task PublishAsync<TAggregate>(object aggregateId, IDomainEvent domainEvent)
+        {
+            await PublishAsync(typeof(TAggregate).FullName, aggregateId, new Dictionary<string, string>(),
+                new List<IDomainEvent> {domainEvent});
+        }
+
         public static IMessage MakeMessageForDomainEvent(string aggregateType, object aggregateId,
             IDictionary<string, string> extraHeaders, IDomainEvent domainEvent)
         {

@@ -14,13 +14,6 @@ namespace MercuryBus.IntegrationTests.TestFixtures
     [TestFixture("schema1")]
     public class ProducerConsumerIntegrationTests : IntegrationTestsBase
     {
-        private readonly string _schema;
-
-        public ProducerConsumerIntegrationTests(string schema)
-        {
-            _schema = schema;
-        }
-
         [SetUp]
         public async Task Setup()
         {
@@ -33,6 +26,13 @@ namespace MercuryBus.IntegrationTests.TestFixtures
         public void TearDown()
         {
             DisposeTestHost();
+        }
+
+        private readonly string _schema;
+
+        public ProducerConsumerIntegrationTests(string schema)
+        {
+            _schema = schema;
         }
 
         [Test]
@@ -111,7 +111,6 @@ namespace MercuryBus.IntegrationTests.TestFixtures
                     Is.EqualTo(1), $"Number of {eventType.Name} messages received by consumer");
                 Assert.That(eventStatistics.ReceivedMessages.Count,
                     Is.EqualTo(1), $"Number of received {eventType.Name} messages");
-
             }
 
             Assert.That(consumer.TotalMessageCount(),
@@ -328,7 +327,7 @@ namespace MercuryBus.IntegrationTests.TestFixtures
                 typeof(TestMessageType1));
 
             // Act
-            await GetTestPublisher().PublishAsync(AggregateType12, AggregateType12, new List<IDomainEvent> {msg1});
+            await GetTestPublisher().PublishAsync(AggregateType12, AggregateType12, msg1);
 
             // Allow time for messages to process
             AssertMessagesArePublishedAndConsumed(eventStatistics);
