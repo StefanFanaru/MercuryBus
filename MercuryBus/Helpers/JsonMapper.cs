@@ -6,7 +6,7 @@ using Newtonsoft.Json.Serialization;
 
 namespace MercuryBus.Helpers
 {
-    public static class JsonMapper
+    internal static class JsonMapper
     {
         private static readonly JsonSerializerSettings JsonSerializerSettings = new()
         {
